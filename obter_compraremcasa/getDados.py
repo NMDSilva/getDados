@@ -1,10 +1,17 @@
+import sys
+import os
+
 import urllib.request 
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import os
-from orm_bd import *
 import datetime
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
+print(path)
+
+from db.schema import *
 load_dotenv("../.env")
 
 class GetDados():
