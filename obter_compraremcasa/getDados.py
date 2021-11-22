@@ -6,19 +6,22 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import datetime
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "db")))
 
-path = os.path.abspath(os.path.join(os.path.dirname(__file__),".."))
-print(path)
+from schema import bd_inicializar, Categoria, Produto, Unidade, Preco, Loja
 
-from db.schema import *
 load_dotenv("../.env")
 
 class GetDados():
   def __init__(self) -> None:
-    self.url = os.environ.get("SITE_CONSULTA")
+    self.url = os.environ.get("SITE_CONSULTA_CC")
     self.filtro = "/name/asc?page="
     bd_inicializar()
+    loja, create = Loja.get_or_create(
+      link = self.url,
+      defaults = { "nome": "Comprar em Casa" }
+    )
+    self.id_loja = loja.get_id()
 
   def carregar_categorias(self):
     pagina = urllib.request.urlopen(self.url).read()
@@ -31,7 +34,10 @@ class GetDados():
         if not a["href"].find(self.url):
           categoria_nome = a["href"].replace(self.url, "")
           if (not self.categoria_existe(categoria_nome)):
-            Categoria.create(nome=categoria_nome)
+            Categoria.create(
+              nome = categoria_nome,
+              loja_id = self.id_loja
+            )
       except:
         pass
   
@@ -70,14 +76,20 @@ class GetDados():
   def registar_produto(self, slugProduto, descricao, precoUnitario, preco, img, categoria, unidade):
     id_categoria = Categoria.get(Categoria.nome == categoria).get_id()
 
-    unidade, create = Unidade.get_or_create(nome = unidade)
+    unidade, create = Unidade.get_or_create(
+      nome = unidade,
+      defaults = {
+        "loja_id": self.id_loja
+      }
+    )
 
     produto, create = Produto.get_or_create(
       slug = slugProduto,
       defaults = {
-        'descricao': descricao,
-        'img': img,
-        'categoria_id': id_categoria
+        "descricao": descricao,
+        "img": img,
+        "categoria_id": id_categoria,
+        "loja_id": self.id_loja
       }
     )
 
@@ -99,4 +111,3 @@ class GetDados():
 
 obj = GetDados()
 obj.iniciar()
-
